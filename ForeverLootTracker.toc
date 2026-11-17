@@ -2,7 +2,7 @@
 ## Title: ForeverLootTracker
 ## Notes: Session-based loot and money tracker with filters, watch/ignore lists, and export. Ported from WildStar FSLootTracker.
 ## Author: Chronosis / NexusInstruments
-## Version: 1.5.4
+## Version: 1.0.0
 ## SavedVariables: ForeverLootTrackerDB
 ## IconTexture: Interface\Icons\INV_Misc_Bag_10
 ## AddonCompartmentFunc: ForeverLootTracker_OnAddonCompartmentClick
