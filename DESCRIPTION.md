@@ -4,7 +4,47 @@
 
 Keep a clean record of what you pick up, craft, buy, and earn — with sources, filters, and exports — without digging through chat scrollback.
 
+**CurseForge:** [forever-loot-tracker](https://www.curseforge.com/wow/addons/forever-loot-tracker)  
+**GitHub:** [Westfall-Digital/ForeverLootTracker](https://github.com/Westfall-Digital/ForeverLootTracker)
+
 Inspired by the WildStar classic [FSLootTracker](https://github.com/NexusInstruments/FSLootTracker).
+
+---
+
+## Screenshots
+
+### Items
+![Items list](https://raw.githubusercontent.com/Westfall-Digital/ForeverLootTracker/main/Screenshots/01-items.png)
+
+### Money Log
+![Money log](https://raw.githubusercontent.com/Westfall-Digital/ForeverLootTracker/main/Screenshots/02-money.png)
+
+### Watch list
+![Watch list](https://raw.githubusercontent.com/Westfall-Digital/ForeverLootTracker/main/Screenshots/03-watch.png)
+
+### Objective Tracker (Watched Loot)
+![Watched Loot on objective tracker](https://raw.githubusercontent.com/Westfall-Digital/ForeverLootTracker/main/Screenshots/03-watch-objectives.png)
+
+### Export
+![Export](https://raw.githubusercontent.com/Westfall-Digital/ForeverLootTracker/main/Screenshots/04-export.png)
+
+### Sessions
+![Sessions](https://raw.githubusercontent.com/Westfall-Digital/ForeverLootTracker/main/Screenshots/05-sessions.png)
+
+### Edit item
+![Edit item](https://raw.githubusercontent.com/Westfall-Digital/ForeverLootTracker/main/Screenshots/06-edit-item.png)
+
+### Ignore rules
+![Ignore rules](https://raw.githubusercontent.com/Westfall-Digital/ForeverLootTracker/main/Screenshots/07-ignore-rules.png)
+
+### Options
+![Options](https://raw.githubusercontent.com/Westfall-Digital/ForeverLootTracker/main/Screenshots/08-options.png)
+
+### Minimap button
+![Minimap button](https://raw.githubusercontent.com/Westfall-Digital/ForeverLootTracker/main/Screenshots/98-map-button.png)
+
+### Titan Panel
+![Titan Panel](https://raw.githubusercontent.com/Westfall-Digital/ForeverLootTracker/main/Screenshots/99-flt-titan-panel.png)
 
 ---
 
@@ -64,4 +104,5 @@ Inspired by the WildStar classic [FSLootTracker](https://github.com/NexusInstrum
 
 ## Support
 
-Issues and updates: [GitHub — Westfall-Digital/ForeverLootTracker](https://github.com/Westfall-Digital/ForeverLootTracker)
+- CurseForge: [forever-loot-tracker](https://www.curseforge.com/wow/addons/forever-loot-tracker)
+- Issues & source: [GitHub — Westfall-Digital/ForeverLootTracker](https://github.com/Westfall-Digital/ForeverLootTracker)

@@ -3,7 +3,7 @@ ForeverLootTracker = ForeverLootTracker or {}
 local FLT = ForeverLootTracker
 
 FLT.NAME = "ForeverLootTracker"
-FLT.VERSION = "1.0.1"
+FLT.VERSION = "1.0.2"
 FLT.DATA_VERSION = "1.4"
 
 FLT.SOURCE = {

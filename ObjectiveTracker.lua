@@ -1,6 +1,6 @@
 -- ForeverLootTracker — Objective Tracker "Watched Loot" accordion for watched items.
--- Mirrors WildStar FSLootTracker's objective-tracker watched-loot panel.
--- Careful with combat/taint: an always-dirty empty module breaks quest OT updates.
+-- Only attaches to the shared OT while watches exist. An empty registered module
+-- was blocking quest objective updates until the player toggled "All Objectives".
 local FLT = ForeverLootTracker
 
 local function DashShow()
@@ -27,6 +27,23 @@ local function HasWatchedItems()
 	return watched ~= nil and next(watched) ~= nil
 end
 
+local function NudgeQuestObjectiveTracker()
+	-- After we attach/detach, force Blizzard quest modules to reflow.
+	for _, mod in ipairs({
+		QuestObjectiveTracker,
+		CampaignQuestObjectiveTracker,
+		BonusObjectiveTracker,
+		WorldQuestObjectiveTracker,
+	}) do
+		if mod and mod.MarkDirty then
+			pcall(mod.MarkDirty, mod)
+		end
+	end
+	if ObjectiveTrackerFrame and ObjectiveTrackerFrame.Update then
+		pcall(ObjectiveTrackerFrame.Update, ObjectiveTrackerFrame)
+	end
+end
+
 function FLT.GetWatchCounts()
 	local counts = {}
 	local watched = FLT.GetWatchedList and FLT.GetWatchedList()
@@ -50,36 +67,6 @@ function FLT.GetWatchCounts()
 	return counts
 end
 
-function FLT.RefreshObjectiveTracker()
-	local module = _G.ForeverLootObjectiveTracker
-	if not module or not module.MarkDirty then
-		return
-	end
-	-- Avoid thrashing the shared OT when we have nothing to show and already cleared.
-	if not HasWatchedItems() and not FLT.objectiveTrackerHadContent then
-		return
-	end
-	if InCombat() then
-		FLT.objectiveTrackerPending = true
-		return
-	end
-	module:MarkDirty()
-end
-
-local function FlushPendingObjectiveTracker()
-	if not FLT.objectiveTrackerPending then
-		return
-	end
-	if InCombat() then
-		return
-	end
-	FLT.objectiveTrackerPending = false
-	local module = _G.ForeverLootObjectiveTracker
-	if module and module.MarkDirty then
-		module:MarkDirty()
-	end
-end
-
 local function BuildMixin()
 	if not ObjectiveTrackerModuleMixin then
 		return nil
@@ -95,18 +82,10 @@ local function BuildMixin()
 	function mixin:InitModule()
 	end
 
-	function mixin:CanUpdate()
-		-- Stay in the layout pass one more time after the last watch is removed
-		-- so unused blocks are freed and our header collapses.
-		if HasWatchedItems() then
-			return true
-		end
-		return FLT.objectiveTrackerHadContent == true
-	end
+	-- Default CanUpdate is fine — we unregister when empty instead of returning false.
 
 	function mixin:LayoutContents()
 		if not HasWatchedItems() then
-			FLT.objectiveTrackerHadContent = false
 			return
 		end
 
@@ -125,7 +104,6 @@ local function BuildMixin()
 			return tostring(a.name) < tostring(b.name)
 		end)
 
-		FLT.objectiveTrackerHadContent = true
 		for _, entry in ipairs(entries) do
 			local block = self:GetBlock(entry.itemID)
 			block:SetHeader(entry.name)
@@ -195,7 +173,6 @@ local function BuildMixin()
 				if not (FLT.UI.frame and FLT.UI.frame:IsShown()) then
 					FLT.UI.Toggle()
 				end
-				-- Prefer ShowPanel — never :Click() a button (taints OT / quest UI).
 				if FLT.UI.ShowPanel then
 					FLT.UI.ShowPanel("watch")
 				end
@@ -203,7 +180,6 @@ local function BuildMixin()
 		end
 	end
 
-	-- Defer native layout during combat so we don't taint quest OT updates.
 	local baseUpdate = mixin.Update or ObjectiveTrackerModuleMixin.Update
 	if baseUpdate then
 		function mixin:Update(...)
@@ -229,7 +205,38 @@ local function TemplateExists(name)
 	return true
 end
 
-local function TryRegisterObjectiveModule()
+local function EnsureModuleFrame()
+	local module = _G.ForeverLootObjectiveTracker
+	if module then
+		return module
+	end
+	if not TemplateExists("ObjectiveTrackerModuleTemplate") then
+		return nil
+	end
+	local mixin = BuildMixin()
+	if not mixin then
+		return nil
+	end
+	local ok, frame = pcall(CreateFrame, "Frame", "ForeverLootObjectiveTracker", UIParent, "ObjectiveTrackerModuleTemplate")
+	if not ok or not frame then
+		FLT.Debug("Could not create ObjectiveTrackerModuleTemplate frame: " .. tostring(frame))
+		return nil
+	end
+	Mixin(frame, mixin)
+	frame.headerText = "Watched Loot"
+	if frame.SetHeader then
+		frame:SetHeader("Watched Loot")
+	elseif frame.Header and frame.Header.Text then
+		frame.Header.Text:SetText("Watched Loot")
+	end
+	local questOrder = (QuestObjectiveTracker and QuestObjectiveTracker.uiOrder)
+		or (CampaignQuestObjectiveTracker and CampaignQuestObjectiveTracker.uiOrder)
+		or 5
+	frame.uiOrder = questOrder - 0.5
+	return frame
+end
+
+local function AttachModule()
 	if FLT.objectiveTrackerRegistered then
 		return true
 	end
@@ -239,50 +246,82 @@ local function TryRegisterObjectiveModule()
 	if not ObjectiveTrackerManager or not ObjectiveTrackerFrame then
 		return false
 	end
-	if not ObjectiveTrackerModuleMixin then
-		return false
-	end
 	if not ObjectiveTrackerManager.containers or not ObjectiveTrackerManager.containers[ObjectiveTrackerFrame] then
 		return false
 	end
-	if not TemplateExists("ObjectiveTrackerModuleTemplate") then
-		return false
-	end
 
-	local mixin = BuildMixin()
-	if not mixin then
-		return false
-	end
-
-	local module = _G.ForeverLootObjectiveTracker
+	local module = EnsureModuleFrame()
 	if not module then
-		local ok, frame = pcall(CreateFrame, "Frame", "ForeverLootObjectiveTracker", UIParent, "ObjectiveTrackerModuleTemplate")
-		if not ok or not frame then
-			FLT.Debug("Could not create ObjectiveTrackerModuleTemplate frame: " .. tostring(frame))
-			return false
-		end
-		module = frame
+		return false
 	end
-
-	Mixin(module, mixin)
-	module.headerText = "Watched Loot"
-	if module.SetHeader then
-		module:SetHeader("Watched Loot")
-	elseif module.Header and module.Header.Text then
-		module.Header.Text:SetText("Watched Loot")
-	end
-	-- Lower uiOrder = higher on the tracker. Sit just above Quests.
-	local questOrder = (QuestObjectiveTracker and QuestObjectiveTracker.uiOrder)
-		or (CampaignQuestObjectiveTracker and CampaignQuestObjectiveTracker.uiOrder)
-		or 5
-	module.uiOrder = questOrder - 0.5
 
 	ObjectiveTrackerManager:SetModuleContainer(module, ObjectiveTrackerFrame)
 	FLT.objectiveTrackerRegistered = true
-	FLT.objectiveTrackerHadContent = HasWatchedItems()
+	FLT.Debug("Objective Tracker Watched Loot module attached.")
+	return true
+end
+
+local function DetachModule()
+	local module = _G.ForeverLootObjectiveTracker
+	if not module or not FLT.objectiveTrackerRegistered then
+		FLT.objectiveTrackerRegistered = false
+		return
+	end
+	if InCombat() then
+		FLT.objectiveTrackerPending = true
+		return
+	end
+	-- Leave the container entirely so an empty module can't stall quest updates.
+	if ObjectiveTrackerManager and ObjectiveTrackerManager.SetModuleContainer then
+		pcall(ObjectiveTrackerManager.SetModuleContainer, ObjectiveTrackerManager, module, nil)
+	end
+	FLT.objectiveTrackerRegistered = false
+	FLT.Debug("Objective Tracker Watched Loot module detached.")
+	NudgeQuestObjectiveTracker()
+end
+
+function FLT.RefreshObjectiveTracker()
+	if InCombat() then
+		FLT.objectiveTrackerPending = true
+		return
+	end
+
+	if HasWatchedItems() then
+		if not AttachModule() then
+			FLT.objectiveTrackerPending = true
+			return
+		end
+		local module = _G.ForeverLootObjectiveTracker
+		if module and module.MarkDirty then
+			module:MarkDirty()
+		end
+	else
+		DetachModule()
+	end
+end
+
+local function FlushPendingObjectiveTracker()
+	if not FLT.objectiveTrackerPending then
+		return
+	end
+	if InCombat() then
+		return
+	end
+	FLT.objectiveTrackerPending = false
 	FLT.RefreshObjectiveTracker()
-	if FLT.Print and FLT.db and FLT.db.user and FLT.db.user.debug then
-		FLT.Debug("Objective Tracker Watched Loot module registered.")
+end
+
+local function TrySyncObjectiveModule()
+	-- Attach only when watches exist; otherwise stay out of the OT.
+	if HasWatchedItems() then
+		if not AttachModule() then
+			return false
+		end
+		FLT.RefreshObjectiveTracker()
+		return true
+	end
+	if FLT.objectiveTrackerRegistered then
+		DetachModule()
 	end
 	return true
 end
@@ -294,28 +333,22 @@ regFrame:RegisterEvent("ADDON_LOADED")
 regFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 regFrame:SetScript("OnEvent", function(_, event, arg1)
 	if event == "PLAYER_REGEN_ENABLED" then
-		if not FLT.objectiveTrackerRegistered then
-			TryRegisterObjectiveModule()
-		end
 		FlushPendingObjectiveTracker()
 		return
 	end
 	if event == "ADDON_LOADED" and arg1 ~= "Blizzard_ObjectiveTracker" then
 		return
 	end
-	if TryRegisterObjectiveModule() then
-		if event ~= "PLAYER_ENTERING_WORLD" then
-			-- Keep REGEN + PEW for deferred flushes; drop load churn once registered.
-			regFrame:UnregisterEvent("ADDON_LOADED")
-			regFrame:UnregisterEvent("PLAYER_LOGIN")
-		end
+	-- Wait until SavedVariables / char DB exist before reading watches.
+	if not FLT.db then
 		return
 	end
+	TrySyncObjectiveModule()
 	if event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_LOGIN" then
 		local tries = 0
 		C_Timer.NewTicker(0.5, function(ticker)
 			tries = tries + 1
-			if TryRegisterObjectiveModule() or tries >= 30 then
+			if (FLT.db and TrySyncObjectiveModule()) or tries >= 30 then
 				ticker:Cancel()
 			end
 		end)
