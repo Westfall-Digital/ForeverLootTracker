@@ -1,0 +1,12 @@
+package-as: ForeverLootTracker
+enable-nolib-creation: no
+
+ignore:
+  - .git
+  - .github
+  - .gitignore
+  - .pkgmeta
+  - .editorconfig
+  - README.md
+  - LICENSE
+  - _wildstar_ref

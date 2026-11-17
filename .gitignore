@@ -1,0 +1,14 @@
+# Packager output
+.release/
+*.zip
+
+# Local / editor
+.DS_Store
+Thumbs.db
+*.bak
+*.swp
+.vscode/
+.idea/
+
+# WildStar reference tree (local only — not shipped, not published)
+_wildstar_ref/
