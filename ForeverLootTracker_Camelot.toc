@@ -8,6 +8,8 @@
 ## AddonCompartmentFunc: ForeverLootTracker_OnAddonCompartmentClick
 ## Category: Loot
 ## AllowLoadGameType: camelot, forever
+## X-Curse-Project-ID: 1811488
+## X-License: MIT
 ## OptionalDeps: LibStub, LibGraph-2.0, Titan, LibDataBroker-1.1
 
 Libs\LibStub\LibStub.lua

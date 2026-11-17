@@ -8,5 +8,7 @@ ignore:
   - .pkgmeta
   - .editorconfig
   - README.md
+  - DESCRIPTION.md
   - LICENSE
+  - Art/ForeverLootTracker-logo.jpg
   - _wildstar_ref
